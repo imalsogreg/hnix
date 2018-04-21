@@ -59,6 +59,7 @@ import           Nix.Eval
 import           Nix.Exec
 import           Nix.Expr.Types
 import           Nix.Expr.Types.Annotated
+import           Nix.Fetch
 import           Nix.Normal
 import           Nix.Parser
 import           Nix.Scope
@@ -120,12 +121,12 @@ builtinsList = sequence [
     , add  TopLevel "throw"                      throw_
     , add2 TopLevel "scopedImport"               scopedImport
     , add  TopLevel "derivationStrict"           derivationStrict_
-    , add0 TopLevel "derivation"                 $(do
-          let f = "data/nix/corepkgs/derivation.nix"
-          addDependentFile f
-          Success expr <- runIO $ parseNixFile f
-          [| evalExpr expr |]
-      )
+    -- , add0 TopLevel "derivation"                 $(do
+    --       let f = "data/nix/corepkgs/derivation.nix"
+    --       addDependentFile f
+    --       Success expr <- runIO $ parseNixFile f
+    --       [| evalExpr expr |]
+    --   )
 
     , add  Normal   "getEnv"                     getEnv_
     , add2 Normal   "hasAttr"                    hasAttr
@@ -786,8 +787,8 @@ fetchTarball v = v >>= \case
  where
     go :: Maybe (NThunk m) -> NValue m -> m (NValue m)
     go msha = \case
-        NVStr uri _ -> fetch uri msha
-        NVConstant (NUri uri) -> fetch uri msha
+        NVStr uri _ -> liftIO $ fetch uri msha
+        -- NVConstant (NUri uri) -> fetch uri msha
         v -> throwError $ "builtins.fetchTarball: Expected URI or string, got "
                 ++ show v
 
@@ -803,14 +804,14 @@ fetchTarball v = v >>= \case
                   ++ ext ++ "'"
 -}
 
-    fetch :: Text -> Maybe (NThunk m) -> m (NValue m)
-    fetch uri Nothing =
-        nixInstantiateExpr $ "builtins.fetchTarball \"" ++
-            Text.unpack uri ++ "\""
-    fetch url (Just m) = fromNix m >>= \sha ->
-        nixInstantiateExpr $ "builtins.fetchTarball { "
-          ++ "url    = \"" ++ Text.unpack url ++ "\"; "
-          ++ "sha256 = \"" ++ Text.unpack sha ++ "\"; }"
+    -- fetch :: Text -> Maybe (NThunk m) -> m (NValue m)
+    -- fetch uri Nothing =
+    --     nixInstantiateExpr $ "builtins.fetchTarball \"" ++
+    --         Text.unpack uri ++ "\""
+    -- fetch url (Just m) = fromNix m >>= \sha ->
+    --     nixInstantiateExpr $ "builtins.fetchTarball { "
+    --       ++ "url    = \"" ++ Text.unpack url ++ "\"; "
+    --       ++ "sha256 = \"" ++ Text.unpack sha ++ "\"; }"
 
 partition_ :: forall e m. MonadBuiltins e m
            => m (NValue m) -> m (NValue m) -> m (NValue m)

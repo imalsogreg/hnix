@@ -25,6 +25,7 @@ dependencies:
   - filepath
   - mtl
   - optparse-applicative
+  - random
   - serialise
   - template-haskell
   - text
@@ -60,6 +61,8 @@ library:
     - hashable
     - megaparsec
     - monadlist
+    - pipes
+    - pipes-http
     - process
     - regex-tdfa
     - regex-tdfa-text

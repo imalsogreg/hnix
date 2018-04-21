@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: aff8893297c028f78cd881c18224a6acbd05d797c4eb702bdcabcbb2341a0891
+-- hash: 767642d8e7dc562b654251e27bcf0efea7618f1971777dfdee6c8f8e5d90aff6
 
 name:           hnix
 version:        0.5.0
@@ -46,6 +46,7 @@ library
       Nix.Expr.Shorthands
       Nix.Expr.Types
       Nix.Expr.Types.Annotated
+      Nix.Fetch
       Nix.Lint
       Nix.Normal
       Nix.Options
@@ -93,7 +94,10 @@ library
     , monadlist
     , mtl
     , optparse-applicative
+    , pipes
+    , pipes-http
     , process
+    , random
     , regex-tdfa
     , regex-tdfa-text
     , scientific
@@ -135,6 +139,7 @@ executable hnix
     , hnix
     , mtl
     , optparse-applicative
+    , random
     , repline
     , serialise
     , template-haskell
@@ -175,6 +180,7 @@ test-suite hnix-tests
     , mtl
     , optparse-applicative
     , process
+    , random
     , serialise
     , split
     , tasty
@@ -212,6 +218,7 @@ benchmark hnix-benchmarks
     , hnix
     , mtl
     , optparse-applicative
+    , random
     , serialise
     , template-haskell
     , text
