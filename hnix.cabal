@@ -460,6 +460,7 @@ library
       Nix.Expr.Types
       Nix.Expr.Types.Annotated
       Nix.Frames
+      Nix.Fetch
       Nix.Lint
       Nix.Normal
       Nix.Options
@@ -511,7 +512,10 @@ library
     , monadlist
     , mtl
     , optparse-applicative
+    , pipes
+    , pipes-http
     , process
+    , random
     , regex-tdfa
     , regex-tdfa-text
     , scientific
@@ -571,6 +575,7 @@ executable hnix
     , mtl
     , optparse-applicative
     , pretty-show
+    , random
     , repline
     , template-haskell
     , text
@@ -628,6 +633,8 @@ test-suite hnix-tests
     , pretty-show
     , process
     , quickcheck-instances
+    , random
+    , serialise
     , split
     , tasty
     , tasty-hunit
@@ -676,6 +683,8 @@ benchmark hnix-benchmarks
     , hnix
     , mtl
     , optparse-applicative
+    , random
+    , serialise
     , template-haskell
     , text
     , time

@@ -76,6 +76,8 @@ dependencies:
   - hashing
   - mtl
   - optparse-applicative
+  - random
+  - serialise
   - template-haskell
   - text
   - time
@@ -116,6 +118,8 @@ library:
     - logict
     - megaparsec                >= 6.0   && < 6.6
     - monadlist
+    - pipes
+    - pipes-http
     - process
     - regex-tdfa
     - regex-tdfa-text

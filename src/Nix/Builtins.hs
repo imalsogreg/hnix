@@ -79,6 +79,7 @@ import           Nix.Exec
 import           Nix.Expr.Types
 import           Nix.Expr.Types.Annotated
 import           Nix.Frames
+import           Nix.Fetch
 import           Nix.Normal
 import           Nix.Options
 import           Nix.Parser
@@ -127,6 +128,24 @@ builtinsList = sequence [
 
     , do version <- toValue (5 :: Int)
          pure $ Builtin Normal ("langVersion", version)
+    , add0 TopLevel "__nixPath"                  nixPath
+    , add  TopLevel "toString"                   toString
+    , add  TopLevel "import"                     import_
+    , add2 TopLevel "map"                        map_
+    , add  TopLevel "baseNameOf"                 baseNameOf
+    , add  TopLevel "dirOf"                      dirOf
+    , add2 TopLevel "removeAttrs"                removeAttrs
+    , add  TopLevel "isNull"                     isNull
+    , add  TopLevel "abort"                      throw_ -- for now
+    , add  TopLevel "throw"                      throw_
+    , add2 TopLevel "scopedImport"               scopedImport
+    , add  TopLevel "derivationStrict"           derivationStrict_
+    , add0 TopLevel "derivation"                 $(do
+          let f = "data/nix/corepkgs/derivation.nix"
+          addDependentFile f
+          Success expr <- runIO $ parseNixFile f
+          [| evalExpr expr |]
+      )
 
     , add0 Normal   "nixPath"                    nixPath
     , add  TopLevel "abort"                      throw_ -- for now
@@ -964,14 +983,14 @@ fetchTarball v = v >>= \case
                   ++ ext ++ "'"
 -}
 
-    fetch :: Text -> Maybe (NThunk m) -> m (NValue m)
-    fetch uri Nothing =
-        nixInstantiateExpr $ "builtins.fetchTarball \"" ++
-            Text.unpack uri ++ "\""
-    fetch url (Just m) = fromValue m >>= \sha ->
-        nixInstantiateExpr $ "builtins.fetchTarball { "
-          ++ "url    = \"" ++ Text.unpack url ++ "\"; "
-          ++ "sha256 = \"" ++ Text.unpack sha ++ "\"; }"
+    -- fetch :: Text -> Maybe (NThunk m) -> m (NValue m)
+    -- fetch uri Nothing =
+    --     nixInstantiateExpr $ "builtins.fetchTarball \"" ++
+    --         Text.unpack uri ++ "\""
+    -- fetch url (Just m) = fromNix m >>= \sha ->
+    --     nixInstantiateExpr $ "builtins.fetchTarball { "
+    --       ++ "url    = \"" ++ Text.unpack url ++ "\"; "
+    --       ++ "sha256 = \"" ++ Text.unpack sha ++ "\"; }"
 
 fetchurl :: forall e m. MonadNix e m => m (NValue m) -> m (NValue m)
 fetchurl v = v >>= \case
