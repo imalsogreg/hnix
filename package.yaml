@@ -74,6 +74,8 @@ dependencies:
   - exceptions
   - filepath
   - hashing
+  - http-client
+  - http-client-tls
   - mtl
   - optparse-applicative
   - random
@@ -119,7 +121,9 @@ library:
     - megaparsec                >= 6.0   && < 6.6
     - monadlist
     - pipes
+    - pipes-bytestring
     - pipes-http
+    - pipes-zlib
     - process
     - regex-tdfa
     - regex-tdfa-text

@@ -43,9 +43,6 @@ withStringContext str = local (over hasLens (Left @_ @NExprLoc str :))
 class Monad m => MonadFile m where
     readFile :: FilePath -> m ByteString
 
-class Monad m => MonadRemoteTar m where
-    fetchUrl :: Text -> Maybe Text -> m FilePath
-
 posAndMsg :: Options -> SourcePos -> Doc -> ParseError t Void
 posAndMsg opts beg msg =
     FancyError (beg :| [])

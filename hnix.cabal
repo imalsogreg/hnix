@@ -513,7 +513,9 @@ library
     , mtl
     , optparse-applicative
     , pipes
+    , pipes-bytestring
     , pipes-http
+    , pipes-zlib
     , process
     , random
     , regex-tdfa
@@ -572,6 +574,8 @@ executable hnix
     , hashing
     , haskeline
     , hnix
+    , http-client
+    , http-client-tls
     , mtl
     , optparse-applicative
     , pretty-show
@@ -626,6 +630,8 @@ test-suite hnix-tests
     , generic-random
     , hashing
     , hnix
+    , http-client
+    , http-client-tls
     , interpolate
     , megaparsec
     , mtl
@@ -681,6 +687,8 @@ benchmark hnix-benchmarks
     , filepath
     , hashing
     , hnix
+    , http-client
+    , http-client-tls
     , mtl
     , optparse-applicative
     , random
