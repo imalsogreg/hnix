@@ -15,6 +15,7 @@ let inherit (nixpkgs) pkgs;
 
   haskellPackages = pkgs.haskell.packages.${compiler}.override {
     overrides = with pkgs.haskell.lib; self: super: rec {
+      pipes-group = dontCheck super.pipes-group;
       serialise = dontCheck super.serialise;
     };
   };

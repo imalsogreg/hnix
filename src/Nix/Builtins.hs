@@ -59,7 +59,6 @@ import           Nix.Eval
 import           Nix.Exec
 import           Nix.Expr.Types
 import           Nix.Expr.Types.Annotated
-import           Nix.Fetch
 import           Nix.Normal
 import           Nix.Parser
 import           Nix.Scope
@@ -787,10 +786,15 @@ fetchTarball v = v >>= \case
  where
     go :: Maybe (NThunk m) -> NValue m -> m (NValue m)
     go msha = \case
-        NVStr uri _ -> liftIO $ fetch uri msha
-        -- NVConstant (NUri uri) -> fetch uri msha
+        NVStr uri _ ->
+            getTarball (Text.unpack uri) =<< unpackMaybeSha msha
+        NVConstant (NUri uri) ->
+            getTarball (Text.unpack uri) =<< unpackMaybeSha msha
         v -> throwError $ "builtins.fetchTarball: Expected URI or string, got "
                 ++ show v
+
+    unpackMaybeSha :: Maybe (NThunk m) -> m (Maybe String)
+    unpackMaybeSha = traverse (fmap Text.unpack . fromNix @Text)
 
 {- jww (2018-04-11): This should be written using pipes in another module
     fetch :: Text -> Maybe (NThunk m) -> m (NValue m)

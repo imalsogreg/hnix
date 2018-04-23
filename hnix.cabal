@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 767642d8e7dc562b654251e27bcf0efea7618f1971777dfdee6c8f8e5d90aff6
+-- hash: 84cc81dbc0199ae955f322ded3ed093c82a19846956480bd9e18270c25945371
 
 name:           hnix
 version:        0.5.0
@@ -90,12 +90,16 @@ library
     , exceptions
     , filepath
     , hashable
+    , http-client
+    , http-client-tls
     , megaparsec
     , monadlist
     , mtl
     , optparse-applicative
     , pipes
+    , pipes-bytestring
     , pipes-http
+    , pipes-zlib
     , process
     , random
     , regex-tdfa
@@ -137,6 +141,8 @@ executable hnix
     , exceptions
     , filepath
     , hnix
+    , http-client
+    , http-client-tls
     , mtl
     , optparse-applicative
     , random
@@ -176,6 +182,8 @@ test-suite hnix-tests
     , exceptions
     , filepath
     , hnix
+    , http-client
+    , http-client-tls
     , interpolate
     , mtl
     , optparse-applicative
@@ -216,6 +224,8 @@ benchmark hnix-benchmarks
     , exceptions
     , filepath
     , hnix
+    , http-client
+    , http-client-tls
     , mtl
     , optparse-applicative
     , random

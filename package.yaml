@@ -23,6 +23,8 @@ dependencies:
   - deepseq
   - exceptions
   - filepath
+  - http-client
+  - http-client-tls
   - mtl
   - optparse-applicative
   - random
@@ -62,7 +64,9 @@ library:
     - megaparsec
     - monadlist
     - pipes
+    - pipes-bytestring
     - pipes-http
+    - pipes-zlib
     - process
     - regex-tdfa
     - regex-tdfa-text

@@ -19,6 +19,9 @@ class MonadEffects m where
     pathExists :: FilePath -> m Bool
     importPath :: AttrSet (NThunk m) -> FilePath -> m (NValue m)
 
+    -- | Fetch a tarball by URL and optional sha256 into the store
+    getTarball :: String -> Maybe String -> m (NValue m)
+
     getEnvVar :: String -> m (Maybe String)
     getCurrentSystemOS :: m Text
     getCurrentSystemArch :: m Text
