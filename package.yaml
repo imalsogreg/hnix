@@ -74,6 +74,7 @@ library:
     - semigroups                >= 0.18 && < 0.19
     - split
     - syb
+    - tar
     - these
     - unix
     - vector

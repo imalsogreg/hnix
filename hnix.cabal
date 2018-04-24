@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 84cc81dbc0199ae955f322ded3ed093c82a19846956480bd9e18270c25945371
+-- hash: 1cec9ca0639ac4aa9587c9d01acddf8c702538ff1df09e968b4ee93285424aa8
 
 name:           hnix
 version:        0.5.0
@@ -109,6 +109,7 @@ library
     , serialise
     , split
     , syb
+    , tar
     , template-haskell
     , text
     , these

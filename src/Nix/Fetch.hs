@@ -7,6 +7,7 @@ module Nix.Fetch where
 import Control.Monad.IO.Class
 import Data.Semigroup ((<>))
 import Data.ByteString (ByteString)
+import qualified Codec.Archive.Tar as Tar
 import Nix.Value
 import Data.IORef
 import qualified Data.Text as Text
@@ -36,7 +37,7 @@ import qualified Crypto.Hash.SHA256 as Crypto
 import System.Random
 import System.IO (IOMode(..), withFile)
 
-import Nix.Exec
+-- import Nix.Exec
 
 fetch :: Text -> Maybe Text -> IO FilePath
 fetch uri msha = do
@@ -57,16 +58,16 @@ fetch' uri msha = do
     mgr <- HTTP.newManager tlsManagerSettings
     sha <- newIORef Crypto.init
     req <- HTTP.parseUrl (Text.unpack uri)
+    createDirectory =<< tmpFilepath
 
-    withFile fn WriteMode $ \hOut ->
-        HTTP.withHTTP req mgr $ \resp ->
-        runEffect $
-        -- PG.decompress
+    tarBytes <- HTTP.withHTTP req mgr $ \resp ->
+        PB.toLazyM $
+        PG.decompress
         (for (HTTP.responseBody resp) $ \b -> do
                 lift (modifyIORef sha (flip Crypto.update b))
                 yield b)
-        >-> PB.toHandle hOut
     BS.putStrLn . ("sha: " <>) . Crypto.finalize =<< readIORef sha
+    Tar.unpack fn $ Tar.read tarBytes
     return fn
 
 tmpFilepath :: IO FilePath
