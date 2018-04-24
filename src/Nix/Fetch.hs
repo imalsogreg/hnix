@@ -37,23 +37,8 @@ import qualified Crypto.Hash.SHA256 as Crypto
 import System.Random
 import System.IO (IOMode(..), withFile)
 
--- import Nix.Exec
-
 fetch :: Text -> Maybe Text -> IO FilePath
 fetch uri msha = do
-    fn <- tmpFilepath
-    mgr <- HTTP.newManager tlsManagerSettings
-    req <- HTTP.parseUrl (Text.unpack uri)
-    let buildSha = fold @IO Crypto.update Crypto.init Crypto.finalize
-    sha <- withFile fn WriteMode $ \hOut ->
-        HTTP.withHTTP req mgr $ \resp ->
-        buildSha $ HTTP.responseBody resp >->
-                          (tee (PB.toHandle hOut))
-    BS.putStrLn ("sha: " <> sha)
-    return fn
-
-fetch' :: Text -> Maybe Text -> IO FilePath
-fetch' uri msha = do
     fn <- tmpFilepath
     mgr <- HTTP.newManager tlsManagerSettings
     sha <- newIORef Crypto.init
@@ -75,6 +60,7 @@ tmpFilepath = do
     b <- getTemporaryDirectory
     return $ b </> "hnix_tmp_" <> show r
 
+-- TODO
 decode32 :: ByteString -> Either String Text
 decode32 = undefined
     where
