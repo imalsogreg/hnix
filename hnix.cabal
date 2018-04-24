@@ -524,6 +524,7 @@ library
     , semigroups >=0.18 && <0.19
     , split
     , syb
+    , tar
     , template-haskell
     , text
     , these

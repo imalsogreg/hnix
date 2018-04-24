@@ -58,6 +58,7 @@ import           Nix.Effects
 import           Nix.Eval as Eval
 import           Nix.Expr
 import           Nix.Frames
+import           Nix.Fetch
 import           Nix.Normal
 import           Nix.Options
 import           Nix.Parser
@@ -559,6 +560,11 @@ instance (MonadFix m, MonadCatch m, MonadIO m, Alternative m,
             -- file was in.
             pushScope (M.singleton "__cur_file" ref) $
                 pushScope scope $ evalExprLoc expr
+
+    getTarball url msha = do
+        tmpPath <- liftIO $ fetch (Text.pack url) (Text.pack <$> msha)
+        StorePath sPath   <- addPath tmpPath
+        Lazy $ return $ NVPath sPath
 
     getEnvVar = liftIO . lookupEnv
 
