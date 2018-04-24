@@ -58,7 +58,6 @@ fetch' uri msha = do
     mgr <- HTTP.newManager tlsManagerSettings
     sha <- newIORef Crypto.init
     req <- HTTP.parseUrl (Text.unpack uri)
-    createDirectory =<< tmpFilepath
 
     tarBytes <- HTTP.withHTTP req mgr $ \resp ->
         PB.toLazyM $
