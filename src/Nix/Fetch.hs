@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -6,8 +7,13 @@ module Nix.Fetch where
 
 import Control.Monad.IO.Class
 import Data.Semigroup ((<>))
+import Data.Bifunctor (first)
 import Data.ByteString (ByteString)
+import Debug.Trace
 import qualified Codec.Archive.Tar as Tar
+import Data.Maybe (catMaybes)
+import qualified Codec.Archive.Tar.Entry as Tar
+import Data.List (intersperse, intercalate)
 import Nix.Value
 import Data.IORef
 import qualified Data.Text as Text
@@ -21,6 +27,7 @@ import qualified Data.ByteString.Char8 as BS
 import Data.Bits
 import GHC.Word
 import qualified Data.ByteString as B8
+import System.FilePath
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Char as Char
 
@@ -37,8 +44,8 @@ import qualified Crypto.Hash.SHA256 as Crypto
 import System.Random
 import System.IO (IOMode(..), withFile)
 
-fetch :: Text -> Maybe Text -> IO FilePath
-fetch uri msha = do
+fetchToTmp :: Text -> IO FilePath
+fetchToTmp uri = do
     fn <- tmpFilepath
     mgr <- HTTP.newManager tlsManagerSettings
     sha <- newIORef Crypto.init
@@ -51,8 +58,49 @@ fetch uri msha = do
                 lift (modifyIORef sha (flip Crypto.update b))
                 yield b)
     BS.putStrLn . ("sha: " <>) . Crypto.finalize =<< readIORef sha
-    Tar.unpack fn $ Tar.read tarBytes
+    Tar.unpack fn $ stripComponents $ Tar.read tarBytes
+    -- Tar.unpack fn $ Tar.read tarBytes
     return fn
+
+
+stripComponents :: Tar.Entries Tar.FormatError -> Tar.Entries Tar.FormatError
+stripComponents =
+    fmapMaybeEntries (stripEntry 1)
+    -- fmap (either id (const Tar.UnrecognisedTarFormat))
+    -- . Tar.mapEntries (stripEntry 1)
+
+fmapMaybeEntries :: Show e => (Tar.Entry -> Maybe Tar.Entry) -> Tar.Entries e -> Tar.Entries e
+fmapMaybeEntries f =
+    Tar.unfoldEntries (\case
+                          [] -> Right Nothing
+                          (e:xs) -> Right (Just (e,xs))
+                      )
+    . catMaybes
+    . fmap f
+    . Tar.foldEntries (:) [] (error . show)
+
+stripEntry :: Int -> Tar.Entry -> Maybe Tar.Entry
+stripEntry n e = e'
+    where
+      isDir = Tar.entryContent e == Tar.Directory
+      parts = drop 1 $ splitPath $ Tar.entryPath e
+      e' = case parts of
+          [] -> Nothing
+          _  -> let p' = Tar.toTarPath isDir (joinPath parts)
+                in  either (const Nothing) (\p'' -> Just $ e { Tar.entryTarPath = p'' }) p'
+
+      -- setPath :: FilePath -> Either String Tar.Entry
+      -- setPath fp = fmap (\fp' -> e { Tar.entryTarPath = fp' })
+      --                   (Tar.toTarPath isDir fp)
+      -- e'  = case Tar.fromTarPath (Tar.entryTarPath e) of
+      --     -- (pathSeparator : _) -> error (show e) -- Left "Absolute path in tar entry"
+      --     _ ->
+      --         setPath $ joinPath
+      --                 $ drop n
+      --                 $ splitPath
+      --                 $ Tar.fromTarPath
+      --                 $ Tar.entryTarPath e
+
 
 tmpFilepath :: IO FilePath
 tmpFilepath = do
@@ -67,3 +115,35 @@ decode32 = undefined
   -- a-z or 2-7
   is32 :: Word8 -> Bool
   is32 w = (w >= 97 && w <= 122) || (w >= 50 && w <= 55)
+
+
+-- fetch_ :: Text -> IO [Tar.Entry]
+-- fetch_ uri = do
+--     mgr <- HTTP.newManager tlsManagerSettings
+--     sha <- newIORef Crypto.init
+--     req <- HTTP.parseUrl (Text.unpack uri)
+--     tarBytes <- HTTP.withHTTP req mgr $ \resp ->
+--         PB.toLazyM $ PG.decompress
+--         (for (HTTP.responseBody resp) $ \b -> do
+--                 lift (modifyIORef sha (flip Crypto.update b))
+--                 yield b)
+--     return . Tar.foldEntries (:) [] (const [])
+--            . stripComponents
+--            . Tar.read
+--            $ tarBytes
+
+-- fetch' :: Text -> IO (Tar.Entries Tar.FormatError)
+-- fetch' uri = do
+--     mgr <- HTTP.newManager tlsManagerSettings
+--     sha <- newIORef Crypto.init
+--     req <- HTTP.parseUrl (Text.unpack uri)
+--     tarBytes <- HTTP.withHTTP req mgr $ \resp ->
+--         PB.toLazyM $ PG.decompress
+--         (for (HTTP.responseBody resp) $ \b -> do
+--                 lift (modifyIORef sha (flip Crypto.update b))
+--                 yield b)
+--     return $ Tar.read tarBytes
+--     -- return . Tar.foldEntries (:) [] (const [])
+--     --        . stripComponents
+--     --        . Tar.read
+--     --        $ tarBytes

@@ -45,6 +45,7 @@ import           Data.List
 import qualified Data.List.NonEmpty as NE
 import           Data.List.Split
 import           Data.Monoid
+import           Data.Maybe (fromMaybe, mapMaybe)
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import           Data.Typeable
@@ -562,9 +563,16 @@ instance (MonadFix m, MonadCatch m, MonadIO m, Alternative m,
                 pushScope scope $ evalExprLoc expr
 
     getTarball url msha = do
-        tmpPath <- liftIO $ fetch (Text.pack url) (Text.pack <$> msha)
-        StorePath sPath   <- addPath tmpPath
+        tmpPath <- liftIO $ fetchToTmp url
+        StorePath sPath <- case msha of
+            Nothing -> addPath tmpPath -- >>= Lazy . return . NVPath . unStorePath
+            Just sha -> do
+                addPathFixed tmpPath sha -- >>= \case
+                    -- Nothing -> error "TODO: sha mismatch"
+                    -- Just sp -> return sp
         Lazy $ return $ NVPath sPath
+        -- liftIO $ putStrLn $ "sPath: " ++ sPath
+        -- Lazy $ return $ NVPath sPath
 
     getEnvVar = liftIO . lookupEnv
 

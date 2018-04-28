@@ -13,6 +13,9 @@ class MonadFile m => MonadEffects m where
     -- | Import a path into the nix store, and return the resulting path
     addPath :: FilePath -> m StorePath
 
+    -- | Version of addPath that checks the hash
+    addPathFixed :: FilePath -> Text -> m StorePath
+
     -- | Determine the absolute path of relative path in the current context
     makeAbsolutePath :: FilePath -> m FilePath
     findEnvPath :: String -> m FilePath
@@ -21,7 +24,7 @@ class MonadFile m => MonadEffects m where
     importPath :: AttrSet (NThunk m) -> FilePath -> m (NValue m)
 
     -- | Fetch a tarball by URL and optional sha256 into the store
-    getTarball :: String -> Maybe String -> m (NValue m)
+    getTarball :: Text -> Maybe Text -> m (NValue m)
 
     getEnvVar :: String -> m (Maybe String)
     getCurrentSystemOS :: m Text
