@@ -563,17 +563,11 @@ instance (MonadFix m, MonadCatch m, MonadIO m, Alternative m,
                 pushScope scope $ evalExprLoc expr
 
     getTarball url msha = do
-        tmpPath <- liftIO $ fetchToTmp url
+        tmpPath <- liftIO $ fetchToTmp url msha
         liftIO $ putStrLn $ "tmpPath: " ++ tmpPath
-        StorePath sPath <- case msha of
-            Nothing -> addPath tmpPath -- >>= Lazy . return . NVPath . unStorePath
-            Just sha -> do
-                addPathFixed tmpPath sha -- >>= \case
-                    -- Nothing -> error "TODO: sha mismatch"
-                    -- Just sp -> return sp
+        StorePath sPath <- addPath tmpPath
+        liftIO $ putStrLn $ "storePath: " ++ sPath
         Lazy $ return $ NVPath sPath
-        -- liftIO $ putStrLn $ "sPath: " ++ sPath
-        -- Lazy $ return $ NVPath sPath
 
     getEnvVar = liftIO . lookupEnv
 

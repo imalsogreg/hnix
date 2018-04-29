@@ -494,13 +494,16 @@ library
     , binary
     , bytestring
     , containers
+    , cryptonite
     , data-fix
     , deepseq >=1.4.2 && <1.5
     , deriving-compat >=0.3 && <0.5
     , directory
     , exceptions
     , filepath
+    , foundation
     , hashing
+    , hashable
     , http-client
     , http-client-tls
     , http-types

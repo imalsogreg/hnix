@@ -45,6 +45,9 @@ import qualified "cryptohash-sha256" Crypto.Hash.SHA256 as SHA256
 import qualified "cryptohash-sha512" Crypto.Hash.SHA512 as SHA512
 #endif
 
+import qualified Crypto.Hash as Cry
+import qualified Data.ByteArray.Encoding as E
+-- import qualified Crypto.Hash.Algorithms as Cry
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Encoding as A
 import           Data.Align (alignWith)

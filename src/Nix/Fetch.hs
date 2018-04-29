@@ -40,25 +40,27 @@ import qualified Pipes.Prelude as PP
 import qualified Pipes.ByteString as PB
 import qualified Pipes.HTTP as HTTP
 import Network.HTTP.Client.TLS
-import qualified Crypto.Hash.SHA256 as Crypto
+import qualified Crypto.Hash.Algorithms as Crypto
+import qualified Crypto.Hash as Crypto
 import System.Random
 import System.IO (IOMode(..), withFile)
+import Nix.Hash
 
 
-fetchToTmp :: Text -> IO FilePath
-fetchToTmp uri = do
+fetchToTmp :: Text -> Maybe Text -> IO FilePath
+fetchToTmp uri msha = do
     fn <- tmpFilepath
     mgr <- HTTP.newManager tlsManagerSettings
-    sha <- newIORef Crypto.init
+    sha <- newIORef Crypto.hashInit
     req <- HTTP.parseUrl (Text.unpack uri)
 
     tarBytes <- HTTP.withHTTP req mgr $ \resp ->
         PB.toLazyM $
         PG.decompress
         (for (HTTP.responseBody resp) $ \b -> do
-                lift (modifyIORef sha (flip Crypto.update b))
+                lift (modifyIORef sha (flip Crypto.hashUpdate b))
                 yield b)
-    BS.putStrLn . ("sha: " <>) . Crypto.finalize =<< readIORef sha
+    BS.putStrLn . ("sha: " <>) . sanitizeDigest32 . shaToDigest32 . Crypto.hashFinalize =<< readIORef sha
     Tar.unpack fn $ stripComponents $ Tar.read tarBytes
     -- Tar.unpack fn $ Tar.read tarBytes
     return fn
