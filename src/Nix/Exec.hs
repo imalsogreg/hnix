@@ -284,7 +284,11 @@ addPathAux :: (MonadEffects (Lazy m),
                MonadFile m
               ) => FilePath -> Maybe Text -> m StorePath
 addPathAux path msha = do
-    let storeArgs = ["--add", path] ++ maybe [] (\sha -> ["--add-fixed", Text.unpack sha]) msha
+    let storeArgs = case msha of
+            Nothing ->  ["--add-fixed", path]
+            Just sha -> ["--add-fixed", Text.unpack sha, path]
+            -- ["--add", path] ++ maybe [] (\sha -> ["--add-fixed", Text.unpack sha]) msha
+    liftIO $ print storeArgs
     (exitCode, out, _) <-
         liftIO $ readProcessWithExitCode "nix-store" storeArgs ""
     case exitCode of
@@ -355,6 +359,7 @@ instance (MonadFix m, MonadCatch m, MonadThrow m, MonadIO m)
 
     getTarball url msha = do
         tmpPath <- liftIO $ fetchToTmp url
+        liftIO $ putStrLn $ "tmpPath: " ++ tmpPath
         StorePath sPath <- case msha of
             Nothing -> addPath tmpPath -- >>= Lazy . return . NVPath . unStorePath
             Just sha -> do

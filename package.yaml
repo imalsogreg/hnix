@@ -25,6 +25,7 @@ dependencies:
   - filepath
   - http-client
   - http-client-tls
+  - memory
   - mtl
   - optparse-applicative
   - random
@@ -62,6 +63,7 @@ library:
     - directory
     - hashable
     - megaparsec
+    - memory
     - monadlist
     - pipes
     - pipes-bytestring

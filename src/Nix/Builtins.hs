@@ -794,7 +794,7 @@ fetchTarball v = v >>= \case
                 ++ show v
 
     unpackMaybeSha :: Maybe (NThunk m) -> m (Maybe Text)
-    unpackMaybeSha = traverse (fromNix @Text)
+    unpackMaybeSha = traverse (fromValue @Text)
 
 {- jww (2018-04-11): This should be written using pipes in another module
     fetch :: Text -> Maybe (NThunk m) -> m (NValue m)
