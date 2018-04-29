@@ -1,141 +1,118 @@
-{-# LANGUAGE DataKinds  #-}
-{-# LANGUAGE FlexibleInstances  #-}
-{-# LANGUAGE KindSignatures  #-}
-{-# LANGUAGE PackageImports  #-}
-{-# LANGUAGE RankNTypes  #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE CPP #-}
 
-module Nix.Hash where
+module Nix.Hash (
+    shaToDigest32
+  , sanitizeDigest32
+  , Truncated(..)
+  ) where
 
-import qualified Data.ByteString as BS
-import Data.Bits
-import GHC.Word
-import Data.Memory.Encoding.Base16
-import Data.Memory.Encoding.Base32
-import System.IO.Unsafe
-import Prelude hiding (length)
-import Foreign.Ptr
--- import qualified "memory" Data.ByteArray.Types as Mem
-import Foreign.ForeignPtr
-import Data.Memory.PtrMethods
-import Data.ByteArray (unsafeCreate)
--- import Data.Memory
-import qualified Data.ByteString as Bytestring
-import qualified Data.ByteString.Internal as Bytestring
+-- import qualified Data.Text as T
+import qualified Data.ByteString.Char8 as BS
+import qualified Crypto.Hash as Cry
+-- import qualified Data.ByteArray as BA
+import qualified Data.ByteArray.Encoding as E
 
--- import           Data.ByteArray.Types
--- import qualified Data.ByteArray.Types        as B
--- import qualified Data.ByteArray.Methods      as B
--- import           Data.Memory.Internal.Compat
+import Control.Monad (void)
+import Data.Coerce (coerce)
+import Data.Proxy (Proxy(..))
+import Data.Word (Word8)
+import GHC.TypeLits (Nat, KnownNat, natVal, type (<=))
+import Crypto.Hash (Digest)
+import Crypto.Hash.IO (HashAlgorithm(..),)
+import Data.ByteArray (alloc)
+import Foreign.Ptr (castPtr, Ptr)
+import Foreign.Marshal.Utils (copyBytes)
+-- #if MIN_VERSION_cryptonite(0,25,0)
+-- import Basement.Block.Mutable (Block)
+-- #else
+import Foundation.Array (UArray)
+-- #endif
 
--- -- | Hash algorithms present to nix
--- data HashType = MD5 | SHA1 | SHA256 | SHA512
---   deriving (Eq, Enum, Show)
+-- | Hash algorithm 'algo' truncated to 'size' bytes.
+newtype Truncated algo (size :: Nat) = Truncated algo
 
--- | Class to Access size properties and data of a ByteArray
-class ByteArrayAccess ba where
-    -- | Return the length in bytes of a bytearray
-    length        :: ba -> Int
-    -- | Allow to use using a pointer
-    withByteArray :: ba -> (Ptr p -> IO a) -> IO a
-    -- | Copy the data of a bytearray to a ptr
-    copyByteArrayToPtr :: ba -> Ptr p -> IO ()
-    copyByteArrayToPtr a dst = withByteArray a $ \src -> memCopy (castPtr dst) src (length a)
+-- -- | The underlying type of a 'Digest'.
+-- #if MIN_VERSION_cryptonite(0,25,0)
+-- type DigestUnwrapped = Block Word8
+-- #else
+type DigestUnwrapped = UArray Word8
+-- #endif
 
--- | Class to allocate new ByteArray of specific size
-class (Eq ba, Ord ba, Monoid ba, ByteArrayAccess ba) => ByteArray ba where
-    -- | allocate `n` bytes and perform the given operation
-    allocRet  :: Int
-                -- ^ number of bytes to allocate. i.e. might not match the
-                -- size of the given type `ba`.
-              -> (Ptr p -> IO a)
-              -> IO (a, ba)
-
-instance ByteArrayAccess Bytestring.ByteString where
-    length = Bytestring.length
-    withByteArray (Bytestring.PS fptr off _) f = withForeignPtr fptr $ \ptr -> f $! (ptr `plusPtr` off)
-
-instance ByteArray Bytestring.ByteString where
-    allocRet sz f = do
-        fptr <- Bytestring.mallocByteString sz
-        r    <- withForeignPtr fptr (f . castPtr)
-        return (r, Bytestring.PS fptr 0 sz)
-
--- -- | Size (in bytes) of various hashes
--- hashTypeSize :: HashType -> Int
--- hashTypeSize = \case
---     MD5    -> 16
---     SHA1   -> 20
---     SHA256 -> 32
---     SHA512 -> 64
-
--- newtype Hash (t :: HashType) = Hash { hashBytes :: BS.ByteString }
-
--- class HashSize a where
---     hashSize :: a -> Int
-
--- instance HashSize (Hash 'MD5) where
---     hashSize _ = hashTypeSize MD5
-
--- instance HashSize (Hash 'SHA1) where
---     hashSize _ = hashTypeSize SHA1
-
--- instance HashSize (Hash 'SHA256) where
---     hashSize _ = hashTypeSize SHA256
-
--- instance HashSize (Hash 'SHA512) where
---     hashSize _ = hashTypeSize SHA512
-
-
--- -- | Text encoding shemes for hashes
--- data Base = Base16 | Base32 | Base64
---   deriving (Eq, Ord, Show)
-
--- readHash32' :: BS.ByteString -> Text
-
--- printHash32 :: Hash a -> BS.ByteString
--- printHash32 = undefined
-
--- readHash32 :: BS.ByteString -> Maybe (Hash a)
--- readHash32 = undefined
-
--- |
--- Module      : Data.ByteArray.Encoding
--- License     : BSD-style
--- Maintainer  : Vincent Hanquez <vincent@snarc.org>
--- Stability   : experimental
--- Portability : unknown
+-- | Use the 'HashAlgorithm' instance of 'algo' and truncate the final
+-- digest.
 --
--- ByteArray base converting
---
+-- The implementation of finalization does some pointer munging that
+-- relies on the representational equivalence of a 'Digest' and
+-- 'DigestUnwrapped', but there is no way for that to be enforced by
+-- the type system. Until/unless cryptonite exports this, we will have
+-- to be vigilant to changes in the type.
+instance ( HashAlgorithm algo, KnownNat (HashDigestSize algo)
+         , KnownNat size, size <= HashDigestSize algo
+         ) => HashAlgorithm (Truncated algo size) where
+  type HashBlockSize (Truncated algo size) = HashBlockSize algo
+  type HashDigestSize (Truncated algo size) = size
+  type HashInternalContextSize (Truncated algo size) =
+    HashInternalContextSize algo
+  hashBlockSize = hashBlockSize @algo . coerce
+  hashDigestSize _ = fromIntegral $ natVal @size Proxy
+  hashInternalContextSize = hashInternalContextSize @algo . coerce
+  hashInternalInit = hashInternalInit @algo . coerce
+  hashInternalUpdate = hashInternalUpdate @algo . coerce
+  hashInternalFinalize cptr dptr = void @_ @DigestUnwrapped $
+      alloc (fromIntegral $ natVal @(HashDigestSize algo) Proxy) go
+    where
+      go :: Ptr (Digest algo) -> IO ()
+      go p = do
+        hashInternalFinalize (coerce cptr) p
+        copyBytes dptr (castPtr p) (fromIntegral $ natVal @size Proxy)
 
--- ***** Copied from `memory`
--- | Convert a bytearray to the equivalent representation in a specific Base
-convertToBase32 :: forall bin bout. (ByteArrayAccess bin, ByteArray bout) => bin -> bout
--- convertToBase32 :: BS.ByteString -> BS.ByteString
-convertToBase32 b =
-    -- Base16 -> doConvert (binLength * 2) toHexadecimal
-    let (q,r)  = binLength `divMod` 5
-        outLen = 8 * (if r == 0 then q else q + 1)
-    in doConvert outLen toBase32
-  where
-    binLength = length b
+shaToDigest32 :: Cry.Digest Cry.SHA256 -> BS.ByteString
+shaToDigest32 bs =
+    E.convertToBase E.Base32
+    $ (Cry.hash bs :: Cry.Digest (Truncated Cry.SHA256 20))
 
-    doConvert :: Int -> (Ptr Word8 -> Ptr Word8 -> Int -> IO ()) -> bout
-    doConvert l f =
-        unsafeCreate l $ \bout ->
-        withByteArray b     $ \bin  ->
-            f bout bin binLength
-
--- | Try to Convert a bytearray from the equivalent representation in a specific Base
-convertFromBase :: (ByteArrayAccess bin, ByteArray bout) => bin -> Either String bout
-convertFromBase b = unsafeDupablePerformIO $
-    withByteArray b $ \bin -> do
-        mDstLen <- unBase32Length bin (length b)
-        case mDstLen of
-            Nothing     -> return $ Left "base32: input: invalid length"
-            Just dstLen -> do
-                (ret, out) <- allocRet dstLen $ \bout -> fromBase32 bout bin (length b)
-                case ret of
-                    Nothing  -> return $ Right out
-                    Just ofs -> return $ Left ("base32: input: invalid encoding at offset: " ++ show ofs)
+-- map from Wikipedia Base32 listing to nix libutil/hash.cc
+sanitizeDigest32 :: BS.ByteString -> BS.ByteString
+sanitizeDigest32 = BS.map safeChar
+    where
+    safeChar = \c -> case c of
+        'A' -> '0'
+        'B' -> '1'
+        'C' -> '2'
+        'D' -> '3'
+        'E' -> '4'
+        'F' -> '5'
+        'G' -> '6'
+        'H' -> '7'
+        'I' -> '8'
+        'J' -> '9'
+        'K' -> 'a'
+        'L' -> 'b'
+        'M' -> 'c'
+        'N' -> 'd'
+        'O' -> 'f'
+        'P' -> 'g'
+        'Q' -> 'h'
+        'R' -> 'i'
+        'S' -> 'j'
+        'T' -> 'k'
+        'U' -> 'l'
+        'V' -> 'm'
+        'W' -> 'n'
+        'X' -> 'p'
+        'Y' -> 'q'
+        'Z' -> 'r'
+        '2' -> 's'
+        '3' -> 'v'
+        '4' -> 'w'
+        '5' -> 'x'
+        '6' -> 'y'
+        '7' -> 'z'
+        _   -> error $ "Unexpected character in hash: " ++ show c

@@ -12,8 +12,8 @@ class MonadEffects m where
     -- | Import a path into the nix store, and return the resulting path
     addPath :: FilePath -> m StorePath
 
-    -- | Version of addPath that checks the hash
-    addPathFixed :: FilePath -> Text -> m StorePath
+    -- -- | Version of addPath that checks the hash
+    -- addPathFixed :: FilePath -> Text -> m StorePath
 
     -- | Determine the absolute path of relative path in the current context
     makeAbsolutePath :: FilePath -> m FilePath

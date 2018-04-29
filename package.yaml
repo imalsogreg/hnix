@@ -58,9 +58,10 @@ library:
     - array                     >= 0.4 && < 0.6
     - base16-bytestring
     - binary
-    - cryptohash
+    - cryptonite
     - deriving-compat           >= 0.3 && < 0.5
     - directory
+    - foundation
     - hashable
     - megaparsec
     - memory

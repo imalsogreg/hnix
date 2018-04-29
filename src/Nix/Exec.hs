@@ -277,39 +277,39 @@ instance MonadThrow m => MonadThrow (Lazy m) where
     throwM = Lazy . throwM
 
 
-addPathAux :: (MonadEffects (Lazy m),
-               Monad m,
-               MonadIO m,
-               Framed e m,
-               MonadFile m
-              ) => FilePath -> Maybe Text -> m StorePath
-addPathAux path msha = do
-    let storeArgs = case msha of
-            Nothing ->  ["--add-fixed", path]
-            Just sha -> ["--add-fixed", Text.unpack sha, path]
-            -- ["--add", path] ++ maybe [] (\sha -> ["--add-fixed", Text.unpack sha]) msha
-    liftIO $ print storeArgs
-    (exitCode, out, _) <-
-        liftIO $ readProcessWithExitCode "nix-store" storeArgs ""
-    case exitCode of
-        ExitSuccess -> do
-            let dropTrailingLinefeed p = take (length p - 1) p
-            return $ StorePath $ dropTrailingLinefeed out
-        _ -> throwError $ "addPath: failed: nix-store --add " ++ show path
+-- addPathAux :: (MonadEffects (Lazy m),
+--                Monad m,
+--                MonadIO m,
+--                Framed e m,
+--                MonadFile m
+--               ) => FilePath -> Maybe Text -> m StorePath
+-- addPathAux path msha = do
+--     let storeArgs = case msha of
+--             Nothing ->  ["--add-fixed", path]
+--             Just sha -> ["--add-fixed", Text.unpack sha, path]
+--             -- ["--add", path] ++ maybe [] (\sha -> ["--add-fixed", Text.unpack sha]) msha
+--     liftIO $ print storeArgs
+--     (exitCode, out, _) <-
+--         liftIO $ readProcessWithExitCode "nix-store" storeArgs ""
+--     case exitCode of
+--         ExitSuccess -> do
+--             let dropTrailingLinefeed p = take (length p - 1) p
+--             return $ StorePath $ dropTrailingLinefeed out
+--         _ -> throwError $ "addPath: failed: nix-store --add " ++ show path
 
 
 instance (MonadFix m, MonadCatch m, MonadThrow m, MonadIO m)
       => MonadEffects (Lazy m) where
-    addPath path = addPathAux path Nothing
-    -- addPath path = do
-    --     (exitCode, out, _) <-
-    --         liftIO $ readProcessWithExitCode "nix-store" ["--add", path] ""
-    --     case exitCode of
-    --       ExitSuccess -> do
-    --         let dropTrailingLinefeed p = take (length p - 1) p
-    --         return $ StorePath $ dropTrailingLinefeed out
-    --       _ -> throwError $ "addPath: failed: nix-store --add " ++ show path
-    addPathFixed path sha = addPathAux path (Just sha)
+    -- addPath path = addPathAux path Nothing
+    addPath path = do
+        (exitCode, out, _) <-
+            liftIO $ readProcessWithExitCode "nix-store" ["--add", path] ""
+        case exitCode of
+          ExitSuccess -> do
+            let dropTrailingLinefeed p = take (length p - 1) p
+            return $ StorePath $ dropTrailingLinefeed out
+          _ -> throwError $ "addPath: failed: nix-store --add " ++ show path
+    -- addPathFixed path sha = addPathAux path (Just sha)
 
     makeAbsolutePath origPath = do
         absPath <- if isAbsolute origPath then pure origPath else do
@@ -358,17 +358,11 @@ instance (MonadFix m, MonadCatch m, MonadThrow m, MonadIO m)
                         (pushScope scope (framedEvalExpr Eval.eval expr))
 
     getTarball url msha = do
-        tmpPath <- liftIO $ fetchToTmp url
+        tmpPath <- liftIO $ fetchToTmp url msha
         liftIO $ putStrLn $ "tmpPath: " ++ tmpPath
-        StorePath sPath <- case msha of
-            Nothing -> addPath tmpPath -- >>= Lazy . return . NVPath . unStorePath
-            Just sha -> do
-                addPathFixed tmpPath sha -- >>= \case
-                    -- Nothing -> error "TODO: sha mismatch"
-                    -- Just sp -> return sp
+        StorePath sPath <- addPath tmpPath
+        liftIO $ putStrLn $ "storePath: " ++ sPath
         Lazy $ return $ NVPath sPath
-        -- liftIO $ putStrLn $ "sPath: " ++ sPath
-        -- Lazy $ return $ NVPath sPath
 
     getEnvVar = liftIO . lookupEnv
 

@@ -24,17 +24,20 @@ import           Control.Monad
 import           Control.Monad.Catch
 import           Control.Monad.Fix
 import           Control.Monad.ListM (sortByM)
-import qualified Crypto.Hash.MD5 as MD5
-import qualified Crypto.Hash.SHA1 as SHA1
-import qualified Crypto.Hash.SHA256 as SHA256
-import qualified Crypto.Hash.SHA512 as SHA512
+-- import qualified Crypto.Hash.MD5 as MD5
+-- import qualified Crypto.Hash.SHA1 as SHA1
+-- import qualified Crypto.Hash.SHA256 as SHA256
+-- import qualified Crypto.Hash.SHA512 as SHA512
+import qualified Crypto.Hash as Cry
+import qualified Data.ByteArray.Encoding as E
+-- import qualified Crypto.Hash.Algorithms as Cry
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Encoding as A
 import           Data.Align (alignWith)
 import           Data.Array
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
-import           Data.ByteString.Base16 as Base16
+-- import           Data.ByteString.Base16 as Base16
 import qualified Data.ByteString.Lazy as LBS
 import           Data.Char (isDigit)
 import           Data.Coerce
@@ -120,12 +123,12 @@ builtinsList = sequence [
     , add  TopLevel "throw"                      throw_
     , add2 TopLevel "scopedImport"               scopedImport
     , add  TopLevel "derivationStrict"           derivationStrict_
-    -- , add0 TopLevel "derivation"                 $(do
-    --       let f = "data/nix/corepkgs/derivation.nix"
-    --       addDependentFile f
-    --       Success expr <- runIO $ parseNixFile f
-    --       [| evalExpr expr |]
-    --   )
+    , add0 TopLevel "derivation"                 $(do
+          let f = "data/nix/corepkgs/derivation.nix"
+          addDependentFile f
+          Success expr <- runIO $ parseNixFile f
+          [| evalExpr expr |]
+      )
 
     , add  Normal   "getEnv"                     getEnv_
     , add2 Normal   "hasAttr"                    hasAttr
@@ -683,14 +686,14 @@ listToAttrs = fromValue @[NThunk m] >=> \l ->
 
 hashString :: MonadBuiltins e m => Text -> Text -> Prim m Text
 hashString algo s = Prim $ do
-    hash <- case algo of
-        "md5"    -> pure MD5.hash
-        "sha1"   -> pure SHA1.hash
-        "sha256" -> pure SHA256.hash
-        "sha512" -> pure SHA512.hash
+    conv <- case algo of
+        "md5"    -> pure $ E.convertToBase E.Base16 . Cry.hashWith Cry.MD5
+        "sha1"   -> pure $ E.convertToBase E.Base16 . Cry.hashWith Cry.SHA1
+        "sha256" -> pure $ E.convertToBase E.Base16 . Cry.hashWith Cry.SHA256
+        "sha512" -> pure $ E.convertToBase E.Base16 . Cry.hashWith Cry.SHA512
         _ -> throwError $ "builtins.hashString: "
             ++ "expected \"md5\", \"sha1\", \"sha256\", or \"sha512\", got " ++ show algo
-    pure $ decodeUtf8 $ Base16.encode $ hash $ encodeUtf8 s
+    pure $ decodeUtf8 $ conv $ encodeUtf8 s
 
 absolutePathFromValue :: MonadBuiltins e m => NValue m -> m FilePath
 absolutePathFromValue = \case

@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 778203d53c2d7cdd902305e48e49eefa9520868f6da2beb44b4843110fe20ba8
+-- hash: 0948ea6e993a5219bfc3349a197a2a1ebc9f20d985c567ea4b4369d2cd998e28
 
 name:           hnix
 version:        0.5.0
@@ -83,13 +83,14 @@ library
     , bytestring
     , compact
     , containers
-    , cryptohash
+    , cryptonite
     , data-fix
     , deepseq
     , deriving-compat >=0.3 && <0.5
     , directory
     , exceptions
     , filepath
+    , foundation
     , hashable
     , http-client
     , http-client-tls
