@@ -564,6 +564,7 @@ instance (MonadFix m, MonadCatch m, MonadIO m, Alternative m,
 
     getTarball url msha = do
         tmpPath <- liftIO $ fetchToTmp url
+        liftIO $ putStrLn $ "tmpPath: " ++ tmpPath
         StorePath sPath <- case msha of
             Nothing -> addPath tmpPath -- >>= Lazy . return . NVPath . unStorePath
             Just sha -> do

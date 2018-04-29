@@ -76,6 +76,7 @@ dependencies:
   - hashing
   - http-client
   - http-client-tls
+  - memory
   - mtl
   - optparse-applicative
   - random
@@ -110,6 +111,7 @@ library:
     - binary
     - deriving-compat           >= 0.3   && < 0.5
     - directory
+    - hashable
     - http-types
     - http-client
     - http-client-tls
@@ -119,6 +121,8 @@ library:
     - lens-family-th
     - logict
     - megaparsec                >= 6.0   && < 6.6
+    - megaparsec
+    - memory
     - monadlist
     - pipes
     - pipes-bytestring

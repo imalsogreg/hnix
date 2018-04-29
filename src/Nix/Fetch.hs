@@ -44,6 +44,7 @@ import qualified Crypto.Hash.SHA256 as Crypto
 import System.Random
 import System.IO (IOMode(..), withFile)
 
+
 fetchToTmp :: Text -> IO FilePath
 fetchToTmp uri = do
     fn <- tmpFilepath
@@ -106,7 +107,7 @@ tmpFilepath :: IO FilePath
 tmpFilepath = do
     r ::  Integer <- randomRIO (1,1000000000)
     b <- getTemporaryDirectory
-    return $ b </> "hnix_tmp_" <> show r
+    return $ b </> "hnix_tmp_" <> show r </> "source"
 
 -- TODO
 decode32 :: ByteString -> Either String Text
@@ -147,3 +148,5 @@ decode32 = undefined
 --     --        . stripComponents
 --     --        . Tar.read
 --     --        $ tarBytes
+
+

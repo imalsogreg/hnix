@@ -461,6 +461,7 @@ library
       Nix.Expr.Types.Annotated
       Nix.Frames
       Nix.Fetch
+      Nix.Hash
       Nix.Lint
       Nix.Normal
       Nix.Options
@@ -509,6 +510,7 @@ library
     , lens-family-th
     , logict
     , megaparsec >=6.0 && <6.6
+    , memory
     , monadlist
     , mtl
     , optparse-applicative
@@ -577,6 +579,7 @@ executable hnix
     , hnix
     , http-client
     , http-client-tls
+    , memory
     , mtl
     , optparse-applicative
     , pretty-show
@@ -635,6 +638,7 @@ test-suite hnix-tests
     , http-client-tls
     , interpolate
     , megaparsec
+    , memory
     , mtl
     , optparse-applicative
     , pretty-show
@@ -690,6 +694,7 @@ benchmark hnix-benchmarks
     , hnix
     , http-client
     , http-client-tls
+    , memory
     , mtl
     , optparse-applicative
     , random
