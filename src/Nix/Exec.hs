@@ -567,7 +567,7 @@ instance (MonadFix m, MonadCatch m, MonadIO m, Alternative m,
         liftIO $ putStrLn $ "tmpPath: " ++ tmpPath
         StorePath sPath <- addPath tmpPath
         liftIO $ putStrLn $ "storePath: " ++ sPath
-        Lazy $ return $ NVPath sPath
+        Lazy $ return $ nvPath sPath
 
     getEnvVar = liftIO . lookupEnv
 

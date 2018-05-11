@@ -1,50 +1,57 @@
+{-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE PackageImports      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeApplications    #-}
 
 module Nix.Fetch where
 
-import Control.Monad.IO.Class
-import Data.Semigroup ((<>))
-import Data.Bifunctor (first)
-import Data.ByteString (ByteString)
-import Debug.Trace
-import qualified Codec.Archive.Tar as Tar
-import Data.Maybe (catMaybes)
-import qualified Codec.Archive.Tar.Entry as Tar
-import Data.List (intersperse, intercalate)
-import Nix.Value
-import Data.IORef
-import qualified Data.Text as Text
-import Data.Text (Text)
-import qualified Pipes.GZip as PG
-import qualified Pipes.Zlib as PZ
-import qualified Data.ByteString.Base16 as B16
-import  System.Directory
-import System.FilePath
-import qualified Data.ByteString.Char8 as BS
-import Data.Bits
-import GHC.Word
-import qualified Data.ByteString as B8
-import System.FilePath
-import qualified Data.ByteString.Lazy as BSL
-import qualified Data.Char as Char
+import qualified Codec.Archive.Tar                   as Tar
+import qualified Codec.Archive.Tar.Entry             as Tar
+import           Control.Monad.IO.Class
+import           Data.Bifunctor                      (first)
+import qualified Data.Binary                         as B
+import           Data.Bits
+import           Data.ByteString                     (ByteString)
+import qualified Data.ByteString                     as B8
+import qualified Data.ByteString.Base16              as B16
+import qualified Data.ByteString.Char8               as BS
+import qualified Data.ByteString.Lazy                as BSL
+import qualified Data.Char                           as Char
+import           Data.IORef
+import           Data.List                           (foldl', intercalate,
+                                                      intersperse)
+import           Data.Maybe                          (catMaybes, fromJust)
+import           Data.Semigroup                      ((<>))
+import           Data.Text                           (Text)
+import qualified Data.Text                           as Text
+import           Debug.Trace
+import           GHC.Word
+import           Nix.Value
+import qualified Pipes.GZip                          as PG
+import qualified Pipes.Zlib                          as PZ
+import           System.Directory
+import           System.FilePath
+import           System.FilePath
 
-import Control.Monad.State
-import qualified Data.ByteString.Builder as Builder
-import Pipes
-import Control.Monad
-import Pipes.Prelude (fold, fold', generalize, scan, tee)
-import qualified Pipes.Prelude as PP
-import qualified Pipes.ByteString as PB
-import qualified Pipes.HTTP as HTTP
-import Network.HTTP.Client.TLS
-import qualified Crypto.Hash.Algorithms as Crypto
-import qualified Crypto.Hash as Crypto
-import System.Random
-import System.IO (IOMode(..), withFile)
-import Nix.Hash
+import           Control.Monad
+import           Control.Monad.State
+import qualified "cryptonite" Crypto.Hash            as Crypto
+import qualified "cryptonite" Crypto.Hash.Algorithms as Crypto
+import qualified Data.ByteString.Builder             as Builder
+import           Network.HTTP.Client.TLS
+import           Nix.Hash
+import           Pipes
+import qualified Pipes.ByteString                    as PB
+import qualified Pipes.HTTP                          as HTTP
+import           Pipes.Prelude                       (fold, fold', generalize,
+                                                      scan, tee)
+import qualified Pipes.Prelude                       as PP
+import           System.IO                           (IOMode (..), withFile)
+import           System.Random
+
+import           System.Nix.Nar
+import           System.Nix.Path
 
 
 fetchToTmp :: Text -> Maybe Text -> IO FilePath
@@ -62,8 +69,16 @@ fetchToTmp uri msha = do
                 yield b)
     BS.putStrLn . ("sha: " <>) . sanitizeDigest32 . shaToDigest32 . Crypto.hashFinalize =<< readIORef sha
     Tar.unpack fn $ stripComponents $ Tar.read tarBytes
-    -- Tar.unpack fn $ Tar.read tarBytes
+    localPackNar narEffectsIO fn >>= BSL.writeFile "source.nar" . B.encode
+    localPackNar narEffectsIO fn >>= localUnpackNar narEffectsIO "tmp-source"
+
+    -- This doesn't match what `nix repl` generates..... :(
+    narsha <- sanitizeDigest32 . shaToDigest32 . Crypto.hashFinalize . (foldr (flip Crypto.hashUpdate) (Crypto.hashInit)) . BSL.toChunks . B.encode <$> localPackNar narEffectsIO fn
+    -- narsha <- sanitizeDigest32 . shaToDigest32 . fromJust . Crypto.digestFromByteString @Crypto.SHA256 @BSL.ByteString . B.encode <$> localPackNar narEffectsIO fn
+    -- narsha <- sanitizeDigest32 . shaToDigest32 . _ . BSL.toChunks <$> localPackNar narEffectsIO fn
+    BS.putStrLn $ "sha try 2: " <> narsha
     return fn
+
 
 
 stripComponents :: Tar.Entries Tar.FormatError -> Tar.Entries Tar.FormatError
@@ -110,14 +125,6 @@ tmpFilepath = do
     r ::  Integer <- randomRIO (1,1000000000)
     b <- getTemporaryDirectory
     return $ b </> "hnix_tmp_" <> show r </> "source"
-
--- TODO
-decode32 :: ByteString -> Either String Text
-decode32 = undefined
-    where
-  -- a-z or 2-7
-  is32 :: Word8 -> Bool
-  is32 w = (w >= 97 && w <= 122) || (w >= 50 && w <= 55)
 
 
 -- fetch_ :: Text -> IO [Tar.Entry]

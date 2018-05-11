@@ -32,7 +32,7 @@ import           Control.Monad.Reader (asks)
 -- us to put the hashing package in the unconditional dependency list.
 -- See https://github.com/NixOS/cabal2nix/issues/348 for more info
 #if MIN_VERSION_hashing(0, 1, 0)
-import           Crypto.Hash
+import           "hashing" Crypto.Hash
 import qualified "hashing" Crypto.Hash.MD5 as MD5
 import qualified "hashing" Crypto.Hash.SHA1 as SHA1
 import qualified "hashing" Crypto.Hash.SHA256 as SHA256
@@ -45,7 +45,7 @@ import qualified "cryptohash-sha256" Crypto.Hash.SHA256 as SHA256
 import qualified "cryptohash-sha512" Crypto.Hash.SHA512 as SHA512
 #endif
 
-import qualified Crypto.Hash as Cry
+import qualified "cryptonite" Crypto.Hash as Cry
 import qualified Data.ByteArray.Encoding as E
 -- import qualified Crypto.Hash.Algorithms as Cry
 import qualified Data.Aeson as A
@@ -143,12 +143,12 @@ builtinsList = sequence [
     , add  TopLevel "throw"                      throw_
     , add2 TopLevel "scopedImport"               scopedImport
     , add  TopLevel "derivationStrict"           derivationStrict_
-    , add0 TopLevel "derivation"                 $(do
-          let f = "data/nix/corepkgs/derivation.nix"
-          addDependentFile f
-          Success expr <- runIO $ parseNixFile f
-          [| evalExpr expr |]
-      )
+    -- , add0 TopLevel "derivation"                 $(do
+    --       let f = "data/nix/corepkgs/derivation.nix"
+    --       addDependentFile f
+    --       Success expr <- runIO $ parseNixFile f
+    --       [| evalExpr expr |]
+    --   )
 
     , add0 Normal   "nixPath"                    nixPath
     , add  TopLevel "abort"                      throw_ -- for now
@@ -972,10 +972,9 @@ fetchTarball v = v >>= \case
     go msha = \case
         NVStr uri _ ->
             getTarball uri =<< unpackMaybeSha msha
-        NVConstant (NUri uri) ->
-            getTarball uri =<< unpackMaybeSha msha
-        v -> throwError $ "builtins.fetchTarball: Expected URI or string, got "
-                ++ show v
+        v -> error "TODO: find the right exception type"
+        -- v -> throwError $ "builtins.fetchTarball: Expected URI or string, got "
+        --         ++ show v
 
     unpackMaybeSha :: Maybe (NThunk m) -> m (Maybe Text)
     unpackMaybeSha = traverse (fromValue @Text)

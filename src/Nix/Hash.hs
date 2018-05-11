@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE PackageImports #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -15,7 +16,7 @@ module Nix.Hash (
 
 -- import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BS
-import qualified Crypto.Hash as Cry
+import qualified "cryptonite" Crypto.Hash as Cry
 -- import qualified Data.ByteArray as BA
 import qualified Data.ByteArray.Encoding as E
 
@@ -24,7 +25,7 @@ import Data.Coerce (coerce)
 import Data.Proxy (Proxy(..))
 import Data.Word (Word8)
 import GHC.TypeLits (Nat, KnownNat, natVal, type (<=))
-import Crypto.Hash (Digest)
+import "cryptonite" Crypto.Hash (Digest)
 import Crypto.Hash.IO (HashAlgorithm(..),)
 import Data.ByteArray (alloc)
 import Foreign.Ptr (castPtr, Ptr)

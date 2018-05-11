@@ -47,6 +47,7 @@ let inherit (nixpkgs) pkgs;
                  enableLibraryProfiling    = false;
                  enableExecutableProfiling = false;
                });
+        hnix-store-core = self.callPackage ../hnix-store/hnix-store-core {};
         pipes-group = dontCheck super.pipes-group;
         pipes-zlib  = dontCheck super.pipes-zlib;
       };
