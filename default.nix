@@ -47,6 +47,8 @@ let inherit (nixpkgs) pkgs;
                  enableLibraryProfiling    = false;
                  enableExecutableProfiling = false;
                });
+        pipes-group = dontCheck super.pipes-group;
+        pipes-zlib  = dontCheck super.pipes-zlib;
       };
   };
 

@@ -74,6 +74,7 @@ dependencies:
   - exceptions
   - filepath
   - hashing
+  - hnix-store-core
   - http-client
   - http-client-tls
   - memory
@@ -114,6 +115,8 @@ library:
     - directory
     - foundation
     - hashable
+    - haskeline
+    - hnix-store-core
     - http-types
     - http-client
     - http-client-tls
@@ -123,7 +126,6 @@ library:
     - lens-family-th
     - logict
     - megaparsec                >= 6.0   && < 6.6
-    - megaparsec
     - memory
     - monadlist
     - pipes
